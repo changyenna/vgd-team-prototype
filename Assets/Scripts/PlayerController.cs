@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class PlayerController : MonoBehaviour
 {
@@ -8,46 +10,63 @@ public class PlayerController : MonoBehaviour
     private bool isGrounded;
     private GameObject nearbyPickup;
     private Renderer playerRenderer;
+    // public TextMeshProUGUI pickupText;
+    public TextMeshProUGUI sleepinessTimerText;
+    private float sleepinessTime = 60f;
+    private bool isGameOver = false;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>(); // Get Rigidbody
-        playerRenderer = GetComponent<Renderer>(); // Get player material
+        rb = GetComponent<Rigidbody>();
+        playerRenderer = GetComponent<Renderer>();
+
+        // pickupText = GameObject.Find("PickupMessage").GetComponent<TextMeshProUGUI>();
+        sleepinessTimerText = GameObject.Find("SleepinessTimer").GetComponent<TextMeshProUGUI>();
+
+        // pickupText.gameObject.SetActive(false); 
     }
 
     void Update()
     {
-        // Basic movement
+        if (!isGameOver)
+        {
+            sleepinessTime -= Time.deltaTime;
+            sleepinessTimerText.text = "Time Left: " + Mathf.Ceil(sleepinessTime) + "s";
+
+            if (sleepinessTime <= 0)
+            {
+                isGameOver = true;
+                sleepinessTimerText.text = "You fell asleep!";
+                Debug.Log("Game Over - Player fell asleep!");
+            }
+        }
+
         float moveX = Input.GetAxis("Horizontal");
         float moveZ = Input.GetAxis("Vertical");
         Vector3 move = new Vector3(moveX * speed, rb.linearVelocity.y, moveZ * speed);
         rb.linearVelocity = move;
 
-        // Jumping
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             isGrounded = false;
         }
 
-        // Picking up pajamas (Press "F")
         if (nearbyPickup != null && Input.GetKeyDown(KeyCode.F))
         {
             Debug.Log("Picked up " + nearbyPickup.name + "!");
 
-            // Get the Pajamas material
             Renderer pajamasRenderer = nearbyPickup.GetComponent<Renderer>();
             if (pajamasRenderer != null)
             {
-                playerRenderer.material = pajamasRenderer.material; // Copy the PajamasMaterial to the Player
+                playerRenderer.material = pajamasRenderer.material;
             }
 
-            Destroy(nearbyPickup); // Remove pajamas after pickup
+            Destroy(nearbyPickup);
             nearbyPickup = null;
+            // pickupText.gameObject.SetActive(false); 
         }
     }
-
-    // Detect Ground & Lava
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Platform"))
@@ -68,16 +87,23 @@ public class PlayerController : MonoBehaviour
             isGrounded = false;
         }
     }
-
-    // Detect nearby pickup objects
-    private void OnTriggerEnter(Collider other)
+    void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Pickup"))
         {
             Debug.Log("Near " + other.gameObject.name + ". Press 'F' to pick up.");
             nearbyPickup = other.gameObject;
+            // pickupText.gameObject.SetActive(true); 
+        }
+
+        if (other.CompareTag("Bed"))
+        {
+            Debug.Log("Player got into bed. Game Complete!");
+            sleepinessTimerText.text = "You went to bed on time!";
+            isGameOver = true;
         }
     }
+
 
     private void OnTriggerExit(Collider other)
     {
@@ -85,14 +111,15 @@ public class PlayerController : MonoBehaviour
         {
             Debug.Log("Left " + other.gameObject.name);
             nearbyPickup = null;
+            // pickupText.gameObject.SetActive(false); // Hide UI text
         }
     }
 
     // Respawn the Player
     void RespawnPlayer()
     {
-        transform.position = new Vector3(-4, 1.5f, -4); // Reset to starting position
-        rb.linearVelocity = Vector3.zero; // Reset velocity so the player doesn't keep moving after respawning
-        Debug.Log("Player respawned");
+        Debug.Log("Respawning Player...");
+        transform.position = new Vector3(-4, 1.5f, -4);
+        rb.linearVelocity = Vector3.zero;
     }
 }

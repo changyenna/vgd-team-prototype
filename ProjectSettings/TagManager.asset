@@ -8,6 +8,7 @@ TagManager:
   - Lava
   - Platform
   - Pickup
+  - Bed
   layers:
   - Default
   - TransparentFX
